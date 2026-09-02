@@ -3,6 +3,7 @@ package app
 import (
 	"book-inventory/models"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
@@ -18,8 +19,49 @@ func New(db *gorm.DB) Handler {
 
 func (h *Handler) GetBooks(c *gin.Context) {
 	var books []models.Books
-	h.DB.Find(&books)
-	c.JSON(http.StatusOK, gin.H{"data": books})
+
+	// 1. Ambil query parameter dari URL
+	pageStr := c.DefaultQuery("page", "1")
+	limitStr := c.DefaultQuery("limit", "10")
+	search := c.Query("search")
+
+	page, _ := strconv.Atoi(pageStr)
+	limit, _ := strconv.Atoi(limitStr)
+	
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 {
+		limit = 10
+	}
+	offset := (page - 1) * limit
+
+	// 2. Membangun Query GORM
+	query := h.DB.Model(&models.Books{})
+
+	// Menggunakan ILIKE (PostgreSQL) agar case-insensitive
+	if search != "" {
+		searchKeyword := "%" + search + "%"
+		query = query.Where("title ILIKE ? OR author ILIKE ?", searchKeyword, searchKeyword)
+	}
+
+	// 3. Menghitung total data keseluruhan (untuk metadata)
+	var total int
+	query.Count(&total)
+
+	// 4. Eksekusi query final dengan Limit dan Offset
+	query.Limit(limit).Offset(offset).Order("id asc").Find(&books)
+
+	// 5. Mengembalikan JSON beserta metadata pagination
+	c.JSON(http.StatusOK, gin.H{
+		"data": books,
+		"meta": gin.H{
+			"total_data":  total,
+			"page":        page,
+			"limit":       limit,
+			"total_pages": (total + limit - 1) / limit,
+		},
+	})
 }
 
 func (h *Handler) GetBookById(c *gin.Context) {

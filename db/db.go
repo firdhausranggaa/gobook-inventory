@@ -76,10 +76,39 @@ func seederBook(db *gorm.DB) {
 		Author:      "Historian Extraordinaire, Dr. Eleanor Timewalker",
 		Description: "Join Dr. Timewalker on an enthralling exploration of historical events, cultures, and the captivating evolution of civilizations throughout the ages.",
 		Stock:       5,
+	}, {
+		Title:       "Generative AI & Neural Networks: A Practical Approach",
+		Author:      "Dr. Alan Diffuser",
+		Description: "Mastering image generation workflows, inpainting, and outpainting using PyTorch and Streamlit.",
+		Stock:       15,
+	}, {
+		Title:       "Advanced Network Administration",
+		Author:      "Router Guru",
+		Description: "Comprehensive guide to configuring MikroTik WinBox, NAT, Trunk Ports, and GNS3 network topologies.",
+		Stock:       8,
+	}, {
+		Title:       "Modern Frontend Mastery",
+		Author:      "Evan Vite",
+		Description: "Building scalable web applications and responsive UIs using Vue.js, React.js, and modern CSS.",
+		Stock:       12,
+	}, {
+		Title:       "Object-Oriented Architecture for Enterprise",
+		Author:      "James C. Java",
+		Description: "Designing robust Point of Sale desktop applications using Java, C++, and relational SQL databases.",
+		Stock:       6,
+	}, {
+		Title:       "Stylized 3D Aesthetics",
+		Author:      "Render Artist",
+		Description: "Techniques for achieving smooth matte plastic materials and cartoon toy figure design in 3D rendering.",
+		Stock:       9,
+	}, {
+		Title:       "The Titanic Dataset: Machine Learning Fundamentals",
+		Author:      "Data Science Academic",
+		Description: "A deep dive into data analysis and academic research publishing using classic datasets.",
+		Stock:       4,
 	}}
 
 	for _, v := range data {
 		db.Create(&v)
 	}
-
 }
