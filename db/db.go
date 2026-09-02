@@ -29,7 +29,7 @@ func InitDB() *gorm.DB {
 }
 
 func Migrate(db *gorm.DB) {
-	db.AutoMigrate(&models.Books{})
+	db.AutoMigrate(&models.Books{}, &models.Borrowing{})
 
 	data := models.Books{}
 	if db.Find(&data).RecordNotFound() {

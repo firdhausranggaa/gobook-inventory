@@ -25,11 +25,16 @@ func main() {
 		protected := api.Group("/")
 		protected.Use(middleware.AuthValid)
 		{
+			// Operasi CRUD Buku
 			protected.GET("/books", handler.GetBooks)
 			protected.GET("/books/:id", handler.GetBookById)
 			protected.POST("/books", handler.PostBook)
 			protected.PUT("/books/:id", handler.PutBook)
 			protected.DELETE("/books/:id", handler.DeleteBook)
+			
+			// Operasi Transaksi Peminjaman
+			protected.POST("/borrow", handler.BorrowBook)
+			protected.POST("/return/:id", handler.ReturnBook)
 		}
 	}
 
