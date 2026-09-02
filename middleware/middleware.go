@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"book-inventory/models"
 	"fmt"
 	"net/http"
 	"os"
@@ -20,24 +21,39 @@ func AuthValid(c *gin.Context) {
 
 	parts := strings.Split(authHeader, " ")
 	if len(parts) != 2 || parts[0] != "Bearer" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Format token tidak valid. Gunakan: Bearer <token>"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Format token tidak valid"})
 		c.Abort()
 		return
 	}
 
 	tokenString := parts[1]
+	claims := &models.JWTClaims{}
 
-	token, err := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(tokenString, claims, func(t *jwt.Token) (interface{}, error) {
 		if _, valid := t.Method.(*jwt.SigningMethodHMAC); !valid {
-			return nil, fmt.Errorf("algoritma token tidak valid: %v", t.Header["alg"])
+			return nil, fmt.Errorf("algoritma tidak valid")
 		}
 		return []byte(os.Getenv("SUPER_SECRET")), nil
 	})
 
-	if token != nil && err == nil {
+	if err == nil && token.Valid {
+		// Menyimpan data user ke context agar bisa dibaca oleh fungsi handler
+		c.Set("username", claims.Username)
+		c.Set("role", claims.Role)
 		c.Next()
 	} else {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Token tidak valid atau sudah kadaluarsa"})
 		c.Abort()
 	}
+}
+
+// RequireAdmin memblokir akses jika role bukan 'admin'
+func RequireAdmin(c *gin.Context) {
+	role, exists := c.Get("role")
+	if !exists || role != "admin" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Akses ditolak: Hanya admin yang diizinkan"})
+		c.Abort()
+		return
+	}
+	c.Next()
 }

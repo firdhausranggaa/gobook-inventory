@@ -10,16 +10,17 @@ import (
 
 func (h *Handler) BorrowBook(c *gin.Context) {
 	var input struct {
-		BookID       int    `json:"book_id" binding:"required"`
-		BorrowerName string `json:"borrower_name" binding:"required"`
+		BookID int `json:"book_id" binding:"required"`
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Format request tidak valid"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID Buku diperlukan"})
 		return
 	}
 
-	// Memulai Database Transaction
+	// Mengambil username secara otomatis dari token yang sedang login
+	loggedInUser, _ := c.Get("username")
+
 	tx := h.DB.Begin()
 	defer func() {
 		if r := recover(); r != nil {
@@ -27,7 +28,6 @@ func (h *Handler) BorrowBook(c *gin.Context) {
 		}
 	}()
 
-	// 1. Cek ketersediaan buku
 	var book models.Books
 	if tx.First(&book, input.BookID).RecordNotFound() {
 		tx.Rollback()
@@ -41,29 +41,27 @@ func (h *Handler) BorrowBook(c *gin.Context) {
 		return
 	}
 
-	// 2. Kurangi stok buku
 	book.Stock -= 1
 	if err := tx.Save(&book).Error; err != nil {
 		tx.Rollback()
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengupdate stok buku"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengupdate stok"})
 		return
 	}
 
-	// 3. Mencatat transaksi peminjaman
 	borrowing := models.Borrowing{
 		BookID:       input.BookID,
-		BorrowerName: input.BorrowerName,
+		BorrowerName: loggedInUser.(string), // Menggunakan username dari token
 		BorrowDate:   time.Now(),
 		Status:       "BORROWED",
 	}
 
 	if err := tx.Create(&borrowing).Error; err != nil {
 		tx.Rollback()
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mencatat data peminjaman"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mencatat peminjaman"})
 		return
 	}
 
-	tx.Commit() // Menyimpan semua perubahan permanen ke database
+	tx.Commit()
 	c.JSON(http.StatusCreated, gin.H{"message": "Buku berhasil dipinjam", "data": borrowing})
 }
 

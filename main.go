@@ -21,22 +21,26 @@ func main() {
 
 	api := r.Group("/api")
 	{
-		// Routing Publik (Tidak memerlukan token)
 		api.POST("/register", authHandler.RegisterHandler)
 		api.POST("/login", authHandler.LoginHandler)
 
-		// Routing Privat (memerlukan token)
 		protected := api.Group("/")
 		protected.Use(middleware.AuthValid)
 		{
+			// Semua user yang login (Admin & Member) bisa melihat buku dan meminjam
 			protected.GET("/books", appHandler.GetBooks)
 			protected.GET("/books/:id", appHandler.GetBookById)
-			protected.POST("/books", appHandler.PostBook)
-			protected.PUT("/books/:id", appHandler.PutBook)
-			protected.DELETE("/books/:id", appHandler.DeleteBook)
-
 			protected.POST("/borrow", appHandler.BorrowBook)
 			protected.POST("/return/:id", appHandler.ReturnBook)
+
+			// Khusus Admin yang bisa manipulasi data buku
+			adminOnly := protected.Group("/")
+			adminOnly.Use(middleware.RequireAdmin)
+			{
+				adminOnly.POST("/books", appHandler.PostBook)
+				adminOnly.PUT("/books/:id", appHandler.PutBook)
+				adminOnly.DELETE("/books/:id", appHandler.DeleteBook)
+			}
 		}
 	}
 

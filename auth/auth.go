@@ -70,15 +70,18 @@ func (h *Handler) LoginHandler(c *gin.Context) {
 		return
 	}
 
-	// 3. Buat token jika cocok (Menyisipkan informasi peran user)
-	claim := jwt.StandardClaims{
-		Subject:   user.Username,
-		ExpiresAt: time.Now().Add(time.Hour * 1).Unix(),
-		Issuer:    "inventory-book",
-		IssuedAt:  time.Now().Unix(),
+	// 3. Membuat token jika cocok
+	claims := models.JWTClaims{
+		Username: user.Username,
+		Role:     user.Role,
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: time.Now().Add(time.Hour * 1).Unix(),
+			Issuer:    "inventory-book",
+			IssuedAt:  time.Now().Unix(),
+		},
 	}
 
-	sign := jwt.NewWithClaims(jwt.SigningMethodHS256, claim)
+	sign := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	token, err := sign.SignedString([]byte(os.Getenv("SUPER_SECRET")))
 
 	if err != nil {
