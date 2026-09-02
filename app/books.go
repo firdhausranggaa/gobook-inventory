@@ -2,9 +2,7 @@ package app
 
 import (
 	"book-inventory/models"
-	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
@@ -21,11 +19,7 @@ func New(db *gorm.DB) Handler {
 func (h *Handler) GetBooks(c *gin.Context) {
 	var books []models.Books
 	h.DB.Find(&books)
-	c.HTML(http.StatusOK, "index.html", gin.H{
-		"title":   "Home Page",
-		"payload": books,
-		"auth":    c.Query("auth"),
-	})
+	c.JSON(http.StatusOK, gin.H{"data": books})
 }
 
 func (h *Handler) GetBookById(c *gin.Context) {
@@ -33,45 +27,21 @@ func (h *Handler) GetBookById(c *gin.Context) {
 	var book models.Books
 
 	if h.DB.Find(&book, bookId).RecordNotFound() {
-		c.AbortWithStatus(http.StatusNotFound)
+		c.JSON(http.StatusNotFound, gin.H{"error": "Buku tidak ditemukan"})
 		return
 	}
-
-	c.HTML(http.StatusOK, "book.html", gin.H{
-		"title":   book.Title,
-		"payload": book,
-		"auth":    c.Query("auth"),
-	})
-}
-
-func (h *Handler) AddBook(c *gin.Context) {
-	c.HTML(http.StatusOK, "formBook.html", gin.H{
-		"title": "Add Book",
-		"auth":  c.Query("auth"),
-	})
+	c.JSON(http.StatusOK, gin.H{"data": book})
 }
 
 func (h *Handler) PostBook(c *gin.Context) {
-	var books models.Books
-	c.Bind(&books)
-	h.DB.Create(&books)
-	c.Redirect(http.StatusMovedPermanently, fmt.Sprintf("/books?auth=%s", c.PostForm("auth")))
-}
-
-func (h *Handler) UpdateBook(c *gin.Context) {
 	var book models.Books
-	bookId := c.Param("id")
-
-	if h.DB.Find(&book, bookId).RecordNotFound() {
-		c.HTML(http.StatusInternalServerError, "error.html", gin.H{"error": "Book not found"})
+	if err := c.ShouldBindJSON(&book); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
-	c.HTML(http.StatusOK, "formBook.html", gin.H{
-		"title":   "Update Book",
-		"payload": book,
-		"auth":    c.Query("auth"),
-	})
+	
+	h.DB.Create(&book)
+	c.JSON(http.StatusCreated, gin.H{"message": "Buku berhasil ditambahkan", "data": book})
 }
 
 func (h *Handler) PutBook(c *gin.Context) {
@@ -79,22 +49,29 @@ func (h *Handler) PutBook(c *gin.Context) {
 	bookId := c.Param("id")
 
 	if h.DB.Find(&book, bookId).RecordNotFound() {
-		c.HTML(http.StatusInternalServerError, "error.html", gin.H{"error": "Book not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Buku tidak ditemukan"})
 		return
 	}
 
-	// Deteksi HTTP PUT method via form[cite: 17]
-	if method := strings.ToLower(c.PostForm("_method")); method == "put" {
-		c.Bind(&book)
-		h.DB.Model(&book).Update(book)
+	var reqBook models.Books
+	if err := c.ShouldBindJSON(&reqBook); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
 	}
 
-	c.Redirect(http.StatusMovedPermanently, fmt.Sprintf("/book/%s?auth=%s", bookId, c.PostForm("auth")))
+	h.DB.Model(&book).Update(reqBook)
+	c.JSON(http.StatusOK, gin.H{"message": "Buku berhasil diperbarui", "data": book})
 }
 
 func (h *Handler) DeleteBook(c *gin.Context) {
 	var book models.Books
 	bookId := c.Param("id")
+
+	if h.DB.Find(&book, bookId).RecordNotFound() {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Buku tidak ditemukan"})
+		return
+	}
+
 	h.DB.Delete(&book, bookId)
-	c.Redirect(http.StatusMovedPermanently, fmt.Sprintf("/books?auth=%s", c.PostForm("auth")))
+	c.JSON(http.StatusOK, gin.H{"message": "Buku berhasil dihapus"})
 }

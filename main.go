@@ -11,28 +11,27 @@ import (
 
 func main() {
 	database := db.InitDB()
-	defer database.Close() 
+	defer database.Close()
 
 	r := gin.Default()
-	r.LoadHTMLGlob("templates/*")
-
 	handler := app.New(database)
 
-	r.GET("/", auth.HomeHandler)
-	r.GET("/login", auth.LoginGetHandler)
-	r.POST("/login", auth.LoginPostHandler)
+	// Grup routing API
+	api := r.Group("/api")
+	{
+		api.POST("/login", auth.LoginHandler)
 
-	r.GET("/books", middleware.AuthValid, handler.GetBooks)
-	r.GET("/book/:id", middleware.AuthValid, handler.GetBookById)
-
-	r.GET("/addBook", middleware.AuthValid, handler.AddBook)
-	r.POST("/book", middleware.AuthValid, handler.PostBook)
-
-	r.GET("/updateBook/:id", middleware.AuthValid, handler.UpdateBook)
-	
-	// HTML Forms do not support PUT and DELETE directly, so we map them via POST
-	r.POST("/updateBook/:id", middleware.AuthValid, handler.PutBook)
-	r.POST("/deleteBook/:id", middleware.AuthValid, handler.DeleteBook)
+		// Grup routing yang dilindungi token JWT
+		protected := api.Group("/")
+		protected.Use(middleware.AuthValid)
+		{
+			protected.GET("/books", handler.GetBooks)
+			protected.GET("/books/:id", handler.GetBookById)
+			protected.POST("/books", handler.PostBook)
+			protected.PUT("/books/:id", handler.PutBook)
+			protected.DELETE("/books/:id", handler.DeleteBook)
+		}
+	}
 
 	r.Run(":8080")
 }
