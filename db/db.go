@@ -9,6 +9,7 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func InitDB() *gorm.DB {
@@ -23,18 +24,35 @@ func InitDB() *gorm.DB {
 	}
 
 	Migrate(db)
-
 	return db
-
 }
 
 func Migrate(db *gorm.DB) {
-	db.AutoMigrate(&models.Books{}, &models.Borrowing{})
+	db.AutoMigrate(&models.Books{}, &models.Borrowing{}, &models.User{})
 
-	data := models.Books{}
-	if db.Find(&data).RecordNotFound() {
+	var book models.Books
+	if db.Find(&book).RecordNotFound() {
 		seederBook(db)
 	}
+
+	var user models.User
+	if db.Find(&user).RecordNotFound() {
+		seederUser(db)
+	}
+}
+
+func seederUser(db *gorm.DB) {
+	adminUser := os.Getenv("SUPER_USER")
+	adminPass := os.Getenv("SUPER_PASS")
+
+	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(adminPass), bcrypt.DefaultCost)
+
+	admin := models.User{
+		Username: adminUser,
+		Password: string(hashedPassword),
+		Role:     "admin",
+	}
+	db.Create(&admin)
 }
 
 func seederBook(db *gorm.DB) {

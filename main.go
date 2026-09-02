@@ -14,27 +14,29 @@ func main() {
 	defer database.Close()
 
 	r := gin.Default()
-	handler := app.New(database)
+	
+	// Injeksi database ke masing-masing handler
+	appHandler := app.New(database)
+	authHandler := auth.New(database)
 
-	// Grup routing API
 	api := r.Group("/api")
 	{
-		api.POST("/login", auth.LoginHandler)
+		// Routing Publik (Tidak memerlukan token)
+		api.POST("/register", authHandler.RegisterHandler)
+		api.POST("/login", authHandler.LoginHandler)
 
-		// Grup routing yang dilindungi token JWT
+		// Routing Privat (memerlukan token)
 		protected := api.Group("/")
 		protected.Use(middleware.AuthValid)
 		{
-			// Operasi CRUD Buku
-			protected.GET("/books", handler.GetBooks)
-			protected.GET("/books/:id", handler.GetBookById)
-			protected.POST("/books", handler.PostBook)
-			protected.PUT("/books/:id", handler.PutBook)
-			protected.DELETE("/books/:id", handler.DeleteBook)
-			
-			// Operasi Transaksi Peminjaman
-			protected.POST("/borrow", handler.BorrowBook)
-			protected.POST("/return/:id", handler.ReturnBook)
+			protected.GET("/books", appHandler.GetBooks)
+			protected.GET("/books/:id", appHandler.GetBookById)
+			protected.POST("/books", appHandler.PostBook)
+			protected.PUT("/books/:id", appHandler.PutBook)
+			protected.DELETE("/books/:id", appHandler.DeleteBook)
+
+			protected.POST("/borrow", appHandler.BorrowBook)
+			protected.POST("/return/:id", appHandler.ReturnBook)
 		}
 	}
 
