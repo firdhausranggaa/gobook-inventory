@@ -26,12 +26,14 @@ A robust, production-ready RESTful API for library and inventory management buil
 
 ## 📦 Installation & Setup
 
+```markdown
 1. **Clone the repository:**
    ```bash
-   git clone [https://github.com/firdhausranggaa/gobook-inventory.git](https://github.com/firdhausranggaa/gobook-inventory.git)
+   git clone https://github.com/firdhausranggaa/gobook-inventory.git
    cd gobook-inventory
 
 ```
+
 
 2. **Environment Variables:**
 Create a `.env` file in the root directory and define the following variables:
