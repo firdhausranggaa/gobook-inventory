@@ -1,5 +1,6 @@
 # Kredensial & Lingkungan
 .env
+*.local
 
 # Hasil kompilasi/build program Go
 *.exe
@@ -12,7 +13,7 @@
 book-inventory
 main
 
-# Konfigurasi Editor/IDE lokal (seperti pengaturan VS Code Anda)
+# Editor & OS
 .vscode/
 .idea/
 *.suo
@@ -20,7 +21,5 @@ main
 *.njsproj
 *.sln
 *.sw?
-
-# File sampah sistem operasi
 .DS_Store
 Thumbs.db

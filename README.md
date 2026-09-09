@@ -1,91 +1,100 @@
-# Go Book Inventory API
+# API RESTful Inventaris Buku (Golang)
 
-A robust, production-ready RESTful API for library and inventory management built with Go (Golang). This project demonstrates advanced backend architecture, relational database management, and secure authorization mechanisms.
+API RESTful tingkat produksi yang tangguh untuk manajemen perpustakaan dan inventaris. Dibangun menggunakan Go (Golang), proyek ini mendemonstrasikan arsitektur *backend* skala *enterprise*, kontrol konkurensi tingkat lanjut, dan mekanisme otorisasi yang aman.
 
-## 🚀 Key Features
+## 🚀 Fitur Skala Enterprise
 
-*   **RESTful JSON API:** Fully headless architecture responding with structured JSON and proper HTTP status codes.
-*   **Secure Authentication:** User registration and login utilizing **Bcrypt** for password hashing and **JWT** (JSON Web Tokens) for stateless authentication.
-*   **Role-Based Access Control (RBAC):** Distinct permission levels separating `Admin` (full CRUD access) and `Member` (read and borrow access).
-*   **Database Transactions:** Safe borrowing and returning mechanisms using GORM's `TX` functions to ensure stock data consistency and prevent race conditions.
-*   **Dynamic Queries:** Implemented search filtering (`ILIKE`) and mathematical pagination (limit/offset) for optimal data retrieval on large datasets.
-*   **Automated Initialization:** Built-in auto-migration and data seeders to populate initial admin credentials and sample book catalogs upon the first run.
+*   **Arsitektur RESTful:** *Backend* sepenuhnya *headless* yang merespons dengan JSON terstruktur dan kode status HTTP yang ketat.
+*   **Kontrol Konkurensi:** Mengimplementasikan **Pessimistic Locking** (`FOR UPDATE`) dan **Database Transactions** untuk mencegah bentrok data (*race condition*) selama proses peminjaman dan pengembalian buku.
+*   **Optimasi Sumber Daya:** Konfigurasi **Connection Pooling** PostgreSQL (batas koneksi aktif/menganggur) untuk menangani lalu lintas tinggi secara efisien.
+*   **Penghentian Aman (Graceful Shutdown):** Server secara aman menyelesaikan transaksi *database* yang sedang berjalan sebelum benar-benar mati saat menerima sinyal interupsi.
+*   **Rekam Jejak & Soft Delete:** Terintegrasi dengan fitur *Soft Delete* GORM (`DeletedAt`) untuk keamanan audit data tanpa penghapusan permanen.
+*   **Autentikasi Aman:** Pendaftaran dan *login* pengguna memanfaatkan **Bcrypt** untuk enkripsi kata sandi dan **JWT** untuk autentikasi *stateless*[cite: 26].
+*   **Kontrol Akses Berbasis Peran (RBAC):** Pemisahan tingkat izin yang jelas antara `Admin` (akses penuh CRUD) dan `Member` (akses baca dan pinjam)[cite: 28].
 
-## 🛠️ Tech Stack
+## 🛠️ Teknologi yang Digunakan
 
-*   **Language:** Go (1.16+)
-*   **Framework:** Gin-Gonic
-*   **ORM:** GORM
-*   **Database:** PostgreSQL
-*   **Security:** Golang-JWT (v4), X/Crypto (Bcrypt)
+*   **Bahasa Pemrograman:** Go (Golang)
+*   **Framework:** Gin-Gonic (dilengkapi Middleware CORS)
+*   **ORM:** GORM[cite: 24, 27]
+*   **Database:** PostgreSQL[cite: 27]
+*   **Keamanan:** Golang-JWT (v4), X/Crypto (Bcrypt)[cite: 26]
 
-## ⚙️ Prerequisites
+## ⚙️ Persyaratan Sistem
 
-*   Go installed on your local machine.
-*   PostgreSQL server running locally or remotely.
+*   Go terinstal di komputer Anda.
+*   Server PostgreSQL yang berjalan secara lokal atau *remote*.
 
-## 📦 Installation & Setup
+## 📦 Instalasi & Konfigurasi Lokal
 
-```markdown
-1. **Clone the repository:**
+1. **Kloning repositori:**
    ```bash
-   git clone https://github.com/firdhausranggaa/gobook-inventory.git
+   git clone [https://github.com/firdhausranggaa/gobook-inventory.git](https://github.com/firdhausranggaa/gobook-inventory.git)
    cd gobook-inventory
 
 ```
 
-
-2. **Environment Variables:**
-Create a `.env` file in the root directory and define the following variables:
+2. **Variabel Lingkungan:**
+Buat *file* `.env` di direktori utama dan definisikan variabel berikut:
 ```env
-POSTGRES_URL="postgresql://postgres:password@127.0.0.1/postgres?sslmode=disable"
+POSTGRES_URL="host=localhost user=postgres password=password_anda dbname=database_anda port=5432 sslmode=disable"
 SUPER_USER="admin"
 SUPER_PASS="123"
-SUPER_SECRET="your-secure-jwt-secret-key"
+SUPER_SECRET="kunci-rahasia-jwt-anda"
+APP_PORT="8080"
 
 ```
 
 
-3. **Install Dependencies:**
+3. **Unduh Dependensi:**
 ```bash
 go mod tidy
 
 ```
 
 
-4. **Run the Server:**
+4. **Jalankan Server:**
 ```bash
 go run main.go
 
 ```
 
 
-*Note: Upon the first successful run, the API will automatically migrate tables and seed the initial data.*
+*Catatan: Pada saat pertama kali dijalankan, API akan secara otomatis melakukan migrasi tabel, membuat Foreign Key, dan mengisi data awal (seeder) untuk admin serta katalog buku.*
 
-## 📡 API Endpoints
+## 📡 Referensi Endpoint API
 
-All protected routes require an `Authorization` header with the format: `Bearer <your_token>`.
+Semua rute yang dilindungi (*protected routes*) mewajibkan *header* `Authorization` dengan format: `Bearer <token_anda>`.
 
-### Authentication (Public)
+### Autentikasi (Publik)
 
-| Method | Endpoint | Description |
+| Method | Endpoint | Deskripsi |
 | --- | --- | --- |
-| `POST` | `/api/register` | Register a new member account |
-| `POST` | `/api/login` | Authenticate and receive a JWT token |
+| `POST` | `/api/register` | Mendaftarkan akun *member* baru |
+| `POST` | `/api/login` | Autentikasi pengguna dan menerima token JWT |
 
-### Book Management (Protected)
+### Manajemen Buku (Terlindungi)
 
-| Method | Endpoint | Access Role | Description |
+| Method | Endpoint | Peran Akses | Deskripsi |
 | --- | --- | --- | --- |
-| `GET` | `/api/books` | Admin / Member | List all books. Supports `?search=`, `?page=`, `?limit=` |
-| `GET` | `/api/books/:id` | Admin / Member | Get details of a specific book |
-| `POST` | `/api/books` | **Admin Only** | Add a new book to the inventory |
-| `PUT` | `/api/books/:id` | **Admin Only** | Update an existing book's details |
-| `DELETE` | `/api/books/:id` | **Admin Only** | Remove a book from the inventory |
+| `GET` | `/api/books` | Admin / Member | Menampilkan semua buku. Mendukung parameter `?search=`, `?page=`, `?limit=`<br> |
+| `GET` | `/api/books/:id` | Admin / Member | Menampilkan detail spesifik dari satu buku
 
-### Borrowing System (Protected)
+ |
+| `POST` | `/api/books` | **Khusus Admin** | Menambahkan buku baru ke inventaris
 
-| Method | Endpoint | Access Role | Description |
+ |
+| `PUT` | `/api/books/:id` | **Khusus Admin** | Memperbarui detail buku yang sudah ada
+
+ |
+| `DELETE` | `/api/books/:id` | **Khusus Admin** | Menghapus buku (Menggunakan sistem Audit/Soft Delete)
+
+ |
+
+### Sistem Peminjaman (Terlindungi & Transaksional)
+
+| Method | Endpoint | Peran Akses | Deskripsi |
 | --- | --- | --- | --- |
-| `POST` | `/api/borrow` | Admin / Member | Borrow a book (requires `book_id` in JSON body) |
-| `POST` | `/api/return/:id` | Admin / Member | Return a borrowed book by borrowing ID |
+| `GET` | `/api/borrowings/me` | Admin / Member | Menarik riwayat peminjaman aktif/lampau milik pengguna (Otomatis memuat *Foreign Key*) |
+| `POST` | `/api/borrow` | Admin / Member | Meminjam buku (Menerapkan penguncian *Pessimistic Locking*) |
+| `POST` | `/api/return/:id` | Admin / Member | Mengembalikan buku yang dipinjam berdasarkan ID Transaksi |

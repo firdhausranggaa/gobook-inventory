@@ -5,6 +5,7 @@ import "time"
 type Borrowing struct {
 	ID           int        `json:"id" gorm:"primaryKey"`
 	BookID       int        `json:"book_id" binding:"required"`
+	Book         Books      `json:"book" gorm:"foreignKey:BookID"`
 	BorrowerName string     `json:"borrower_name" binding:"required"`
 	BorrowDate   time.Time  `json:"borrow_date"`
 	ReturnDate   *time.Time `json:"return_date"`

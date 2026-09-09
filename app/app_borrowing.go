@@ -18,7 +18,6 @@ func (h *Handler) BorrowBook(c *gin.Context) {
 		return
 	}
 
-	// Mengambil username secara otomatis dari token yang sedang login
 	loggedInUser, _ := c.Get("username")
 
 	tx := h.DB.Begin()
@@ -29,7 +28,7 @@ func (h *Handler) BorrowBook(c *gin.Context) {
 	}()
 
 	var book models.Books
-	if tx.First(&book, input.BookID).RecordNotFound() {
+	if tx.Set("gorm:query_option", "FOR UPDATE").First(&book, input.BookID).RecordNotFound() {
 		tx.Rollback()
 		c.JSON(http.StatusNotFound, gin.H{"error": "Buku tidak ditemukan"})
 		return
@@ -50,7 +49,7 @@ func (h *Handler) BorrowBook(c *gin.Context) {
 
 	borrowing := models.Borrowing{
 		BookID:       input.BookID,
-		BorrowerName: loggedInUser.(string), // Menggunakan username dari token
+		BorrowerName: loggedInUser.(string),
 		BorrowDate:   time.Now(),
 		Status:       "BORROWED",
 	}
@@ -75,9 +74,8 @@ func (h *Handler) ReturnBook(c *gin.Context) {
 		}
 	}()
 
-	// 1. Mengecek data peminjaman
 	var borrowing models.Borrowing
-	if tx.First(&borrowing, borrowingId).RecordNotFound() {
+	if tx.Set("gorm:query_option", "FOR UPDATE").First(&borrowing, borrowingId).RecordNotFound() {
 		tx.Rollback()
 		c.JSON(http.StatusNotFound, gin.H{"error": "Data peminjaman tidak ditemukan"})
 		return
@@ -89,7 +87,6 @@ func (h *Handler) ReturnBook(c *gin.Context) {
 		return
 	}
 
-	// 2. Update status dan tanggal kembali
 	now := time.Now()
 	borrowing.Status = "RETURNED"
 	borrowing.ReturnDate = &now
@@ -100,7 +97,6 @@ func (h *Handler) ReturnBook(c *gin.Context) {
 		return
 	}
 
-	// 3. Mengembalikan stok buku
 	var book models.Books
 	if tx.First(&book, borrowing.BookID).RecordNotFound() {
 		tx.Rollback()
@@ -117,4 +113,19 @@ func (h *Handler) ReturnBook(c *gin.Context) {
 
 	tx.Commit()
 	c.JSON(http.StatusOK, gin.H{"message": "Buku berhasil dikembalikan", "data": borrowing})
+}
+
+func (h *Handler) GetMyBorrowings(c *gin.Context) {
+	loggedInUser, _ := c.Get("username")
+	var borrowings []models.Borrowing
+
+	if err := h.DB.Preload("Book").Where("borrower_name = ?", loggedInUser).Order("borrow_date desc").Find(&borrowings).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil riwayat peminjaman"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Berhasil mengambil riwayat peminjaman",
+		"data":    borrowings,
+	})
 }

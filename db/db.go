@@ -5,6 +5,7 @@ import (
 	_ "database/sql"
 	"log"
 	"os"
+	"time"
 
 	"github.com/jinzhu/gorm"
 	"github.com/joho/godotenv"
@@ -23,12 +24,19 @@ func InitDB() *gorm.DB {
 		log.Fatal(err)
 	}
 
+	sqlDB := db.DB()
+	sqlDB.SetMaxIdleConns(10)
+	sqlDB.SetMaxOpenConns(100)
+	sqlDB.SetConnMaxLifetime(time.Hour)
+
 	Migrate(db)
 	return db
 }
 
 func Migrate(db *gorm.DB) {
 	db.AutoMigrate(&models.Books{}, &models.Borrowing{}, &models.User{})
+
+	db.Model(&models.Borrowing{}).AddForeignKey("book_id", "books(id)", "RESTRICT", "CASCADE")
 
 	var book models.Books
 	if db.Find(&book).RecordNotFound() {
