@@ -41,7 +41,6 @@ POSTGRES_URL="host=localhost user=postgres password=password_anda dbname=databas
 SUPER_USER="admin"
 SUPER_PASS="123"
 SUPER_SECRET="kunci-rahasia-jwt-anda"
-APP_PORT="8080"
 
 ```
 
