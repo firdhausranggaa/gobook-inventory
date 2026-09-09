@@ -89,7 +89,6 @@ Semua rute yang dilindungi (*protected routes*) mewajibkan *header* `Authorizati
  |
 | `DELETE` | `/api/books/:id` | **Khusus Admin** | Menghapus buku (Menggunakan sistem Audit/Soft Delete)
 
- |
 
 ### Sistem Peminjaman (Terlindungi & Transaksional)
 
