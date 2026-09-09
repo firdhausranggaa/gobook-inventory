@@ -28,9 +28,9 @@ API RESTful tingkat produksi yang tangguh untuk manajemen perpustakaan dan inven
 ## 📦 Instalasi & Konfigurasi Lokal
 
 1. **Kloning repositori:**
-   ```bash
-   git clone [https://github.com/firdhausranggaa/gobook-inventory.git](https://github.com/firdhausranggaa/gobook-inventory.git)
-   cd gobook-inventory
+```bash
+git clone [https://github.com/firdhausranggaa/gobook-inventory.git](https://github.com/firdhausranggaa/gobook-inventory.git)
+cd gobook-inventory
 
 ```
 
